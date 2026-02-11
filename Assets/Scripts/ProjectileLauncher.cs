@@ -38,7 +38,7 @@ public class ProjectileLauncher : MonoBehaviour
                 radius = impactRadius
             };
 
-
+            wall.RecieveImpact(impact);
         }
     }
 }
