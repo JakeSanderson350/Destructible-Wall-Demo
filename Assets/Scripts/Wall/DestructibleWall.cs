@@ -15,6 +15,6 @@ public class DestructibleWall : MonoBehaviour
     public void RecieveImpact(ImpactData impact)
     {
         Debug.Log("BAbabooey");
-        FractureResult[] chunks = WallFracturer.Fracture(meshFilter.mesh, impact, numChunks, transform);
+        FractureResult[] chunks = WallFracturer.Fracture(meshFilter.mesh, impact, numChunks, transform, gameObject.GetComponent<MeshRenderer>().material);
     }
 }

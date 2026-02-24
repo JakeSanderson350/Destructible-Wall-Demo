@@ -1,9 +1,11 @@
+using EzySlice;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.LightTransport;
 
 public static class WallFracturer
 {
-    public static FractureResult[] Fracture(Mesh wallMesh, ImpactData impact, int numChunks, Transform wallTransform)
+    public static FractureResult[] Fracture(Mesh wallMesh, ImpactData impact, int numChunks, Transform wallTransform, Material material)
     {
         Vector3[] seeds = GenerateSeeds(impact.localPos, numChunks, wallMesh.bounds);
 
@@ -14,6 +16,11 @@ public static class WallFracturer
 
             Debug.DrawLine(impact.worldPos, seedWorldPos, Color.blue, 5.0f);
         }
+
+        MeshFilter[] newMeshes = SliceWithPlane(wallTransform.gameObject, Vector3.zero, Vector3.forward, material);
+        GameObject newObject = new GameObject();
+        var mf = newObject.AddComponent<MeshFilter>();
+        mf = newMeshes[0];
 
         return null;
     }
@@ -46,6 +53,16 @@ public static class WallFracturer
         }
 
         return seeds;
+    }
+
+    public static MeshFilter[] SliceWithPlane(GameObject target, Vector3 planePoint, Vector3 planeNormal, Material material)
+    {
+        SlicedHull hull = target.Slice(planePoint, planeNormal, material);
+
+        return new MeshFilter[] {
+            hull.CreateUpperHull(target, material).GetComponent<MeshFilter>(),
+            hull.CreateLowerHull(target, material).GetComponent<MeshFilter>()
+        };
     }
 }
 
