@@ -1,12 +1,17 @@
 using EzySlice;
+using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.LightTransport;
 
 public static class WallFracturer
 {
+    private static Material meshMaterial;
+
     public static FractureResult[] Fracture(Mesh wallMesh, ImpactData impact, int numChunks, Transform wallTransform, Material material)
     {
+        meshMaterial = material;
+
         Vector3[] seeds = GenerateSeeds(impact.localPos, numChunks, wallMesh.bounds);
 
         // temp debug showing seeds
@@ -17,12 +22,9 @@ public static class WallFracturer
             Debug.DrawLine(impact.worldPos, seedWorldPos, Color.blue, 5.0f);
         }
 
-        MeshFilter[] newMeshes = SliceWithPlane(wallTransform.gameObject, Vector3.zero, Vector3.forward, material);
-        GameObject newObject = new GameObject();
-        var mf = newObject.AddComponent<MeshFilter>();
-        mf = newMeshes[0];
+        FractureResult[] chunks = SliceMeshBySeeds(wallMesh, seeds, impact, wallTransform);
 
-        return null;
+        return chunks;
     }
 
     private static Vector3[] GenerateSeeds(Vector3 impactLocal, int count, Bounds bounds)
@@ -55,13 +57,78 @@ public static class WallFracturer
         return seeds;
     }
 
-    public static MeshFilter[] SliceWithPlane(GameObject target, Vector3 planePoint, Vector3 planeNormal, Material material)
+    private static FractureResult[] SliceMeshBySeeds(Mesh sourceMesh, Vector3[] seeds, ImpactData impact, Transform wallTransform)
     {
-        SlicedHull hull = target.Slice(planePoint, planeNormal, material);
+        var results = new List<FractureResult>();
 
-        return new MeshFilter[] {
-            hull.CreateUpperHull(target, material).GetComponent<MeshFilter>(),
-            hull.CreateLowerHull(target, material).GetComponent<MeshFilter>()
+        // Create a temporary object to be cut over and over again
+        GameObject sourceObj = new GameObject();
+        sourceObj.transform.position = wallTransform.position;
+        sourceObj.transform.rotation = wallTransform.rotation;
+        sourceObj.transform.localScale = wallTransform.localScale;
+
+        var sourceMF = sourceObj.AddComponent<MeshFilter>();
+        sourceMF.mesh = sourceMesh;
+        sourceObj.AddComponent<MeshRenderer>();
+
+        // For each seed, make ONE cut from the impact point to that seed
+        for (int i = 0; i < seeds.Length; i++)
+        {
+            Vector3 seed = seeds[i];
+
+            // Plane Normal
+            Vector3 direction = (seed - impact.localPos).normalized;
+
+            // Place the plane halfway between seed and impact point
+            Vector3 cutPoint = Vector3.Lerp(impact.localPos, seed, 0.5f);
+
+            // Transform to world space for ezy slice
+            Vector3 worldCutPoint = wallTransform.TransformPoint(cutPoint);
+            Vector3 worldNormal = wallTransform.TransformDirection(direction);
+
+            // Slice the mesh
+            GameObject[] slicedObjs = SliceWithPlane(sourceObj, worldCutPoint, worldNormal);
+
+            if (slicedObjs != null)
+            {
+                // Take one pice of the cut
+                GameObject chunkObj = slicedObjs[0];
+
+                if (chunkObj != null)
+                {
+                    var chunkMF = chunkObj.GetComponent<MeshFilter>();
+                    if (chunkMF != null && chunkMF.mesh != null && chunkMF.mesh.vertexCount > 0)
+                    {
+                        // Copy the mesh so we can destroy the tmp obj
+                        Mesh chunkMesh = Object.Instantiate(chunkMF.mesh);
+                        Vector3 worldCenter = wallTransform.TransformPoint(chunkMesh.bounds.center);
+
+                        results.Add(new FractureResult
+                        {
+                            mesh = chunkMesh,
+                            center = worldCenter
+                        });
+                    }
+
+                    Object.Destroy(chunkObj);
+                    Object.Destroy(slicedObjs[1]);
+                }
+            }
+        }
+
+        // Clean up
+        Object.Destroy(sourceObj);
+
+        return results.ToArray();
+    }
+
+    private static GameObject[] SliceWithPlane(GameObject target, Vector3 planePoint, Vector3 planeNormal)
+    {
+        SlicedHull hull = target.Slice(planePoint, planeNormal, meshMaterial);
+
+        return new GameObject[] {
+            hull.CreateUpperHull(target, meshMaterial),
+            hull.CreateLowerHull(target, meshMaterial)
         };
     }
 }
