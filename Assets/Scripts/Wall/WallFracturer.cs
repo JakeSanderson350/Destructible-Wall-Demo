@@ -62,7 +62,7 @@ public static class WallFracturer
         List<GameObject> activePieces = new List<GameObject>();
 
         // Create the initial piece
-        GameObject initialObj = new GameObject("InitialPiece");
+        GameObject initialObj = new GameObject();
         initialObj.transform.position = wallTransform.position;
         initialObj.transform.rotation = wallTransform.rotation;
         initialObj.transform.localScale = wallTransform.localScale;
@@ -108,7 +108,7 @@ public static class WallFracturer
                 }
                 else
                 {
-                    // The plane didn't intersect this piece - keep it as-is
+                    // The plane didn't intersect this piece
                     newActivePieces.Add(piece);
                 }
             }

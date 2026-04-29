@@ -23,6 +23,7 @@ public class ProjectileLauncher : MonoBehaviour
 
     private void TryFireAtWall()
     {
+        // Get point in world from clicking on screen
         Ray ray = cam.ScreenPointToRay(Input.mousePosition);
 
         if (Physics.Raycast(ray, out RaycastHit hit, 100.0f))

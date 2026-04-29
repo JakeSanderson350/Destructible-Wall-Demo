@@ -19,6 +19,7 @@ public class Projectile : MonoBehaviour
 
     private void OnCollisionEnter(Collision collision)
     {
+        // Check if impulse is strong enough to trigger destruction
         if (collision.collider.gameObject.TryGetComponent(out DestructibleWall wall) && collision.impulse.magnitude > 2.0f)
         {
             ImpactData impact = new ImpactData

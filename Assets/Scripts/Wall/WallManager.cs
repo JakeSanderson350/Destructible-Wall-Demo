@@ -42,6 +42,7 @@ public class WallManager : MonoBehaviour
 
     private void Awake()
     {
+        // Singleton
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -88,6 +89,7 @@ public class WallManager : MonoBehaviour
         GameObject[] allObjects = FindObjectsByType<GameObject>(
             FindObjectsSortMode.None);
 
+        // Find chunk parents by name
         int count = 0;
         foreach (GameObject go in allObjects)
         {
@@ -109,6 +111,7 @@ public class WallManager : MonoBehaviour
         }
         liveWalls.Clear();
 
+        // Spawn all walls in snapshot list
         foreach (WallSnapshot snap in snapshots)
         {
             GameObject newWall = Instantiate(wallPrefab, snap.position,

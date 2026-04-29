@@ -26,7 +26,7 @@ public class DestructibleWall : MonoBehaviour
     private void SpawnChunks(FractureResult[] chunks, ImpactData impact)
     {
         // Create a parent object
-        GameObject chunksParent = new GameObject($"{gameObject.name}_Chunks");
+        GameObject chunksParent = new GameObject(gameObject.name + "_Chunks");
         chunksParent.transform.position = transform.position;
         chunksParent.transform.rotation = transform.rotation;
 
