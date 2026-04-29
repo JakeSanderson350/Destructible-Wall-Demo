@@ -31,7 +31,7 @@ public class DestructibleWall : MonoBehaviour
         {
             GameObject chunkObj = new GameObject("Chunk");
             chunkObj.transform.SetParent(chunksParent.transform);
-            chunkObj.transform.position = chunk.center;
+            chunkObj.transform.localPosition = chunk.localCenter;
             chunkObj.transform.rotation = transform.rotation;
             chunkObj.transform.localScale = transform.localScale;
 

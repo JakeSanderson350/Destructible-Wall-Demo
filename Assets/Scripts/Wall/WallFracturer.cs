@@ -59,65 +59,85 @@ public static class WallFracturer
 
     private static FractureResult[] SliceMeshBySeeds(Mesh sourceMesh, Vector3[] seeds, ImpactData impact, Transform wallTransform)
     {
-        var results = new List<FractureResult>();
+        List<GameObject> activePieces = new List<GameObject>();
 
-        // Create a temporary object to be cut over and over again
-        GameObject sourceObj = new GameObject();
-        sourceObj.transform.position = wallTransform.position;
-        sourceObj.transform.rotation = wallTransform.rotation;
-        sourceObj.transform.localScale = wallTransform.localScale;
+        // Create the initial piece
+        GameObject initialObj = new GameObject("InitialPiece");
+        initialObj.transform.position = wallTransform.position;
+        initialObj.transform.rotation = wallTransform.rotation;
+        initialObj.transform.localScale = wallTransform.localScale;
 
-        var sourceMF = sourceObj.AddComponent<MeshFilter>();
-        sourceMF.mesh = sourceMesh;
-        sourceObj.AddComponent<MeshRenderer>();
+        var initialMF = initialObj.AddComponent<MeshFilter>();
+        initialMF.mesh = sourceMesh;
+        initialObj.AddComponent<MeshRenderer>();
 
-        // For each seed, make ONE cut from the impact point to that seed
+        activePieces.Add(initialObj);
+
+        // For each seed, create a cutting plane and slice ALL active pieces
         for (int i = 0; i < seeds.Length; i++)
         {
             Vector3 seed = seeds[i];
 
-            // Plane Normal
+            // Define the cutting plane
             Vector3 direction = (seed - impact.localPos).normalized;
-
-            // Place the plane halfway between seed and impact point
             Vector3 cutPoint = Vector3.Lerp(impact.localPos, seed, 0.5f);
 
-            // Transform to world space for ezy slice
+            // Transform to world space
             Vector3 worldCutPoint = wallTransform.TransformPoint(cutPoint);
             Vector3 worldNormal = wallTransform.TransformDirection(direction);
 
-            // Slice the mesh
-            GameObject[] slicedObjs = SliceWithPlane(sourceObj, worldCutPoint, worldNormal);
+            List<GameObject> newActivePieces = new List<GameObject>();
 
-            if (slicedObjs != null)
+            // Slice each active piece with this plane
+            foreach (GameObject piece in activePieces)
             {
-                // Take one pice of the cut
-                GameObject chunkObj = slicedObjs[0];
+                SlicedHull hull = piece.Slice(worldCutPoint, worldNormal, meshMaterial);
 
-                if (chunkObj != null)
+                if (hull != null)
                 {
-                    var chunkMF = chunkObj.GetComponent<MeshFilter>();
-                    if (chunkMF != null && chunkMF.mesh != null && chunkMF.mesh.vertexCount > 0)
-                    {
-                        // Copy the mesh so we can destroy the tmp obj
-                        Mesh chunkMesh = Object.Instantiate(chunkMF.mesh);
-                        Vector3 worldCenter = wallTransform.TransformPoint(chunkMesh.bounds.center);
+                    GameObject upperHull = hull.CreateUpperHull(piece, meshMaterial);
+                    GameObject lowerHull = hull.CreateLowerHull(piece, meshMaterial);
 
-                        results.Add(new FractureResult
-                        {
-                            mesh = chunkMesh,
-                            center = worldCenter
-                        });
-                    }
+                    if (upperHull != null && upperHull.GetComponent<MeshFilter>().mesh.vertexCount > 0)
+                        newActivePieces.Add(upperHull);
 
-                    Object.Destroy(chunkObj);
-                    Object.Destroy(slicedObjs[1]);
+                    if (lowerHull != null && lowerHull.GetComponent<MeshFilter>().mesh.vertexCount > 0)
+                        newActivePieces.Add(lowerHull);
+
+                    Object.Destroy(piece);
+                }
+                else
+                {
+                    // The plane didn't intersect this piece - keep it as-is
+                    newActivePieces.Add(piece);
                 }
             }
+
+            // Replace active pieces with the newly sliced set
+            activePieces = newActivePieces;
         }
 
-        // Clean up
-        Object.Destroy(sourceObj);
+        // Convert all remaining active pieces to FractureResults
+        var results = new List<FractureResult>();
+
+        foreach (GameObject piece in activePieces)
+        {
+            var pieceMF = piece.GetComponent<MeshFilter>();
+            if (pieceMF != null && pieceMF.mesh != null && pieceMF.mesh.vertexCount > 0)
+            {
+                Mesh chunkMesh = Object.Instantiate(pieceMF.mesh);
+                Vector3 localCenter = chunkMesh.bounds.center;
+
+                results.Add(new FractureResult
+                {
+                    mesh = chunkMesh,
+                    localCenter = localCenter
+                });
+            }
+
+            // Clean up the temporary piece
+            Object.Destroy(piece);
+        }
 
         return results.ToArray();
     }
@@ -136,5 +156,5 @@ public static class WallFracturer
 public struct FractureResult
 {
     public Mesh mesh;
-    public Vector3 center;
+    public Vector3 localCenter;
 }
