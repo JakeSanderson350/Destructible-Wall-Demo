@@ -5,6 +5,10 @@ public class DestructibleWall : MonoBehaviour
     [Header("Fracture Settings")]
     public int numChunks = 16;
 
+    [Header("Materials")]
+    public Material meshMaterial;
+    public Material capMaterial;
+
     private MeshFilter meshFilter;
 
     private void Awake()
@@ -14,8 +18,7 @@ public class DestructibleWall : MonoBehaviour
 
     public void RecieveImpact(ImpactData impact)
     {
-        Debug.Log("BAbabooey");
-        FractureResult[] chunks = WallFracturer.Fracture(meshFilter.mesh, impact, numChunks, transform, gameObject.GetComponent<MeshRenderer>().material);
+        FractureResult[] chunks = WallFracturer.Fracture(meshFilter.mesh, impact, numChunks, transform, meshMaterial, capMaterial);
 
         SpawnChunks(chunks, impact);
     }

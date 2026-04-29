@@ -7,10 +7,12 @@ using UnityEngine.LightTransport;
 public static class WallFracturer
 {
     private static Material meshMaterial;
+    private static Material capMaterial;
 
-    public static FractureResult[] Fracture(Mesh wallMesh, ImpactData impact, int numChunks, Transform wallTransform, Material material)
+    public static FractureResult[] Fracture(Mesh wallMesh, ImpactData impact, int numChunks, Transform wallTransform, Material material, Material capMat)
     {
         meshMaterial = material;
+        capMaterial = capMat;
 
         Vector3[] seeds = GenerateSeeds(impact.localPos, numChunks, wallMesh.bounds);
 
@@ -95,8 +97,8 @@ public static class WallFracturer
 
                 if (hull != null)
                 {
-                    GameObject upperHull = hull.CreateUpperHull(piece, meshMaterial);
-                    GameObject lowerHull = hull.CreateLowerHull(piece, meshMaterial);
+                    GameObject upperHull = hull.CreateUpperHull(piece, capMaterial);
+                    GameObject lowerHull = hull.CreateLowerHull(piece, capMaterial);
 
                     if (upperHull != null && upperHull.GetComponent<MeshFilter>().mesh.vertexCount > 0)
                         newActivePieces.Add(upperHull);

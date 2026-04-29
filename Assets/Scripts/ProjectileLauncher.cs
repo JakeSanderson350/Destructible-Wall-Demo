@@ -6,6 +6,8 @@ public class ProjectileLauncher : MonoBehaviour
     [Header("Projectile Settings")]
     public float impactForce = 100.0f;
     public float impactRadius = 1.0f;
+    public float projectileVelocity = 1000.0f;
+    public GameObject projectile;
 
     private Camera cam;
 
@@ -26,19 +28,11 @@ public class ProjectileLauncher : MonoBehaviour
 
         if (Physics.Raycast(ray, out RaycastHit hit, 100.0f))
         {
-            DestructibleWall wall = hit.collider.GetComponent<DestructibleWall>();
-            if (wall == null)
-                return;
+            Projectile newProjectile = Instantiate(projectile, transform.position, transform.rotation).GetComponent<Projectile>();
 
-            ImpactData impact = new ImpactData
-            {
-                worldPos = hit.point,
-                localPos = wall.transform.InverseTransformPoint(hit.point),
-                force = impactForce,
-                radius = impactRadius
-            };
+            Vector3 direction = hit.point - transform.position;
 
-            wall.RecieveImpact(impact);
+            newProjectile.Fire(direction, projectileVelocity, impactForce, impactRadius);
         }
     }
 }
